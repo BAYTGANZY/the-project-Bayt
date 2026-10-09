@@ -293,6 +293,51 @@ function saveWalkthrough() {
         >
           Exportera anteckningar
         </button>
+     <button
+  type="button"
+  className="rounded-md bg-emerald-800 px-5 py-3 font-medium text-white"
+  onClick={saveWalkthrough}
+>
+  Spara genomgång
+</button>
+     {savedWalkthroughs.length > 0 && (
+  <div className="mt-4 rounded-xl border p-4">
+    <h2 className="mb-3 text-lg font-semibold">
+      Sparade genomgångar
+    </h2>
+    <div className="space-y-2">
+      {savedWalkthroughs.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className="block w-full rounded-md border p-3 text-left hover:bg-muted/50"
+          onClick={() => {
+            setCurrentWalkthroughId(item.id);
+            setPropertyName(item.propertyName ?? "");
+            setAddress(item.address ?? "");
+            setContact(item.contact ?? "");
+            setVisitDate(item.visitDate ?? "");
+            setAnswers(item.answers ?? {});
+            setComments(item.comments ?? {});
+            setGeneralNotes(item.generalNotes ?? "");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <span className="block font-medium">
+            {item.propertyName || "Namnlös fastighet"}
+          </span>
+          <span className="block text-sm text-muted-foreground">
+            {item.address || "Ingen adress angiven"}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Senast sparad:{" "}
+            {new Date(item.updatedAt).toLocaleString("sv-SE")}
+          </span>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
