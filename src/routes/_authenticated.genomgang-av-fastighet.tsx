@@ -63,7 +63,48 @@ function GenomgangAvFastighetPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [generalNotes, setGeneralNotes] = useState("");
+const [savedWalkthroughs, setSavedWalkthroughs] = useState<any[]>([]);
+const [currentWalkthroughId, setCurrentWalkthroughId] = useState<string | null>(null);
 
+useEffect(() => {
+  try {
+    const saved = localStorage.getItem("bayt-property-walkthroughs");
+    if (saved) setSavedWalkthroughs(JSON.parse(saved));
+  } catch {
+    console.error("Kunde inte läsa sparade genomgångar.");
+  }
+}, []);
+
+function saveWalkthrough() {
+  const record = {
+    id: currentWalkthroughId ?? crypto.randomUUID(),
+    propertyName,
+    address,
+    contact,
+    visitDate,
+    answers,
+    comments,
+    generalNotes,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const updated = [
+    record,
+    ...savedWalkthroughs.filter((item) => item.id !== record.id),
+  ];
+
+  try {
+    localStorage.setItem(
+      "bayt-property-walkthroughs",
+      JSON.stringify(updated),
+    );
+    setSavedWalkthroughs(updated);
+    setCurrentWalkthroughId(record.id);
+    alert("Genomgången har sparats på den här enheten.");
+  } catch {
+    alert("Kunde inte spara genomgången i webbläsaren.");
+  }
+}
   const total = CHECKLIST.reduce(
     (sum, section) => sum + section.items.length,
     0,
