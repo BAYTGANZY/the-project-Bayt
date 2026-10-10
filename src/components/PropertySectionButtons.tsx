@@ -12,6 +12,7 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "projects", label: "Projekt" },
   { key: "objects", label: "Objekt" },
   { key: "documents", label: "Dokument" },
+  { key: "logbook", label: "Loggbok" },
 ];
 
 const DOT_SECTIONS = new Set<SectionKey>(["issues", "inspections", "projects"]);
