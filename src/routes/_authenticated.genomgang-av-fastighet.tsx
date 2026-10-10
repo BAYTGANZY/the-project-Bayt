@@ -153,7 +153,7 @@ function saveWalkthrough() {
           BAYT · NY KUND
         </p>
         <h1 className="mt-2 text-3xl font-semibold">
-          Genomgång av fastighet
+          Platsbesök
         </h1>
         <p className="mt-2 text-muted-foreground">
           Underlag inför platsbesök och offert. Denna genomgång är separat

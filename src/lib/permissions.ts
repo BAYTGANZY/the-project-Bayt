@@ -38,6 +38,7 @@ const STYRELSE_ROUTES = [
   "/loggbok",
   "/installningar",
   "/chatt",
+  "/genomgang-av-fastighet",
 ];
 
 // /kalender and /avslutat are specced for entreprenörer but not built yet.
@@ -58,6 +59,7 @@ const ENTREPRENOR_ROUTES = [
   "/loggbok",
   "/installningar",
   "/chatt",
+  "/genomgang-av-fastighet",
 ];
 
 /**
