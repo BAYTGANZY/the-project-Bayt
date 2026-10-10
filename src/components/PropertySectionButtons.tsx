@@ -10,7 +10,6 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "issues", label: "Felanmälan" },
   { key: "inspections", label: "Besiktningar" },
   { key: "projects", label: "Projekt" },
-  { key: "projects", label: "Projekt" },
   { key: "objects", label: "Objekt" },
   { key: "documents", label: "Dokument" },
 ];
