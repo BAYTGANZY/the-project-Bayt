@@ -52,6 +52,7 @@ const SECTIONS: NavSection[] = [
     label: "Fastigheter",
     items: [
       { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
+      { to: "/properties", label: "Objekt", icon: Briefcase01Icon },
       { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
     ],
   },
