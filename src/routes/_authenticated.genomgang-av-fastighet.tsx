@@ -162,7 +162,7 @@ function saveWalkthrough() {
       </div>
 
       <div className="rounded-xl border p-5">
-        <h2 className="mb-4 text-lg font-semibold">Grunduppgifter</h2>
+`<h2 className="mb-4 flex items-center gap-2 text-lg font-semibold"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">🏢</span>Grunduppgifter</h2>`
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1">
             <span className="text-sm font-medium">Fastighet / kund</span>
