@@ -10,6 +10,12 @@ import {
   File02Icon,
   UserGroupIcon,
   BookOpen01Icon,
+  EyeOffFreeIcons,
+  EyeIcon,
+  DocumentAttachmentFreeIcons,
+  DocumentValidationIcon,
+  Document,
+  Doc01FreeIcons,
 } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -34,9 +40,11 @@ const TILES = [
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-  { to: "/dokument", label: "Dokument", icon: File02Icon },
+  { to: "/objects", label: "Objekt", icon: File02Icon },
+  { to: "/dokument", label: "Dokument", icon: Doc01FreeIcons },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
   { to: "/loggbok", label: "Loggbok", icon: BookOpen01Icon },
+  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },
 ] as const;
 
 const BG = "#0e1f1a";
