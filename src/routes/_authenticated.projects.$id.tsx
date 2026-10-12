@@ -399,7 +399,7 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  />
+                />
               </div>
               <div>
                 <label style={labelStyle}>Deadline</label>
@@ -408,8 +408,10 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  />
+                />
               </div>
+            </div>
+
             <div style={{ marginBottom: 24 }}>
               <AnsvarigDropdown value={assignedContactId} onChange={setAssignedContactId} />
             </div>
