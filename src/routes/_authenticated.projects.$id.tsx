@@ -155,6 +155,7 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
   const [budget, setBudget] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [assignedContactId, setAssignedContactId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
