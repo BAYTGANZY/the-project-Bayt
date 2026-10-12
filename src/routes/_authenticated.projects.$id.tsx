@@ -410,7 +410,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
                   onChange={(e) => setDeadline(e.target.value)}
                   />
               </div>
-             <div>
             <div style={{ marginBottom: 24 }}>
               <AnsvarigDropdown value={assignedContactId} onChange={setAssignedContactId} />
             </div>
