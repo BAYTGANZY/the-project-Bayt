@@ -392,14 +392,17 @@ assigned_contact_id: assignedContactId,
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-              <div>
-                <label style={labelStyle}>Slutdatum</label>
-                <input
-                  style={inputStyle}
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />  <label style={labelStyle}>Deadline</label>
+<div>
+  <label style={labelStyle}>Slutdatum</label>
+  <input
+    style={inputStyle}
+    type="date"
+    value={endDate}
+    onChange={(e) => setEndDate(e.target.value)}
+  />
+</div>
+<div>
+  <label style={labelStyle}>Deadline</label>
   <input
     style={inputStyle}
     type="date"
