@@ -399,9 +399,7 @@ assigned_contact_id: assignedContactId,
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                />
-             <div>
-  <label style={labelStyle}>Deadline</label>
+                />  <label style={labelStyle}>Deadline</label>
   <input
     style={inputStyle}
     type="date"
@@ -409,6 +407,7 @@ assigned_contact_id: assignedContactId,
     onChange={(e) => setDeadline(e.target.value)}
   />
 </div>
+             <div>
             <div style={{ marginBottom: 24 }}>
               <AnsvarigDropdown value={assignedContactId} onChange={setAssignedContactId} />
             </div>
