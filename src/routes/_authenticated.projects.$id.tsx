@@ -191,10 +191,10 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
           // Only ProjektStatusButtons (pausad/avbruten) and Öppna/Avsluta
           // (arende_status) may change what a projekt's status is.
           budget: budget ? Number(budget) : null,
-start_date: startDate || null,
-end_date: endDate || null,
-deadline: deadline || null,
-assigned_contact_id: assignedContactId,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          deadline: deadline || null,
+          assigned_contact_id: assignedContactId,
         })
         .eq("id", id);
       if (error) throw error;
@@ -392,24 +392,24 @@ assigned_contact_id: assignedContactId,
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-<div>
-  <label style={labelStyle}>Slutdatum</label>
-  <input
-    style={inputStyle}
-    type="date"
-    value={endDate}
-    onChange={(e) => setEndDate(e.target.value)}
-  />
-</div>
-<div>
-  <label style={labelStyle}>Deadline</label>
-  <input
-    style={inputStyle}
-    type="date"
-    value={deadline}
-    onChange={(e) => setDeadline(e.target.value)}
-  />
-</div>
+              <div>
+                <label style={labelStyle}>Slutdatum</label>
+                <input
+                  style={inputStyle}
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  />
+              </div>
+              <div>
+                <label style={labelStyle}>Deadline</label>
+                <input
+                  style={inputStyle}
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  />
+              </div>
              <div>
             <div style={{ marginBottom: 24 }}>
               <AnsvarigDropdown value={assignedContactId} onChange={setAssignedContactId} />
