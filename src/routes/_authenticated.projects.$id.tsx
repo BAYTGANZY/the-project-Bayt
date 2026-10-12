@@ -170,6 +170,7 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
     setBudget(p.budget != null ? String(p.budget) : "");
     setStartDate(p.start_date ?? "");
     setEndDate(p.end_date ?? "");
+    setDeadline((p as typeof p & { deadline?: string | null }).deadline ?? "");
     setAssignedContactId(p.assigned_contact_id ?? null);
   }, [projectQ.data]);
 
