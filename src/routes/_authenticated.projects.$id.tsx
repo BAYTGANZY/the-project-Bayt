@@ -191,9 +191,10 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
           // Only ProjektStatusButtons (pausad/avbruten) and Öppna/Avsluta
           // (arende_status) may change what a projekt's status is.
           budget: budget ? Number(budget) : null,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          assigned_contact_id: assignedContactId,
+start_date: startDate || null,
+end_date: endDate || null,
+deadline: deadline || null,
+assigned_contact_id: assignedContactId,
         })
         .eq("id", id);
       if (error) throw error;
