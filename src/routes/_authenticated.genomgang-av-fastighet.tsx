@@ -296,3 +296,4 @@ function saveWalkthrough() {
 export const Route = createFileRoute("/_authenticated/genomgang-av-fastighet")({
   component: GenomgangAvFastighetPage,
 });
+
