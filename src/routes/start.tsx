@@ -7,12 +7,12 @@ import {
   AlertCircleIcon,
   ClipboardCheckIcon,
   Briefcase01Icon,
+  EyeIcon,
   File02Icon,
   UserGroupIcon,
   BookOpen01Icon,
 } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
-import { Eye, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { canAccess } from "@/lib/permissions";
 const baytLogo = `${import.meta.env.BASE_URL}assets/bayt-logo.png`;
@@ -41,17 +41,13 @@ const TILES = [
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
+  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: ClipboardCheckIcon },
   { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-  { to: "/dokument", label: "Dokument", icon: FileTextIcon },
+  { to: "/dokument", label: "Dokument", icon: File02Icon },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
   { to: "/loggbok", label: "Loggbok", icon: BookOpen01Icon },
 ] as const;
-
-const TILE_VISUALS: Record<string, "eye" | "document"> = {
-  "/genomgang-av-fastighet": "eye",
-  "/dokument": "document",
-};
 
 const BG = "#0e1f1a";
 const LINE = "rgba(151, 186, 72, 0.18)";
@@ -253,7 +249,6 @@ function StartPage() {
         <div className="start-body">
           <div className="start-tiles">
             {tiles.map((tile) => {
-              const visual = TILE_VISUALS[tile.to];
               return (
                 <Link
                   key={tile.to}
@@ -261,14 +256,7 @@ function StartPage() {
                   className="start-tile"
                 >
                   <div className="start-tile-icon">
-                    {visual === "eye" ? (
-                      <Eye size={30} strokeWidth={1.5} />
-                    ) : visual === "document" ? (
-                      <FileText size={30} strokeWidth={1.5} />
-                    ) : (
                     <HugeiconsIcon icon={tile.icon} size={30} strokeWidth={1.5} />
-                      <HugeiconsIcon icon={tile.icon} size={30} strokeWidth={1.5} />
-                    )}
                   </div>
                   <div className="start-tile-label">{tile.label}</div>
                 </Link>
