@@ -37,8 +37,10 @@ const TILES = [
   { to: "/dashboard", label: "Dashboard", icon: DashboardSquare01Icon },
   { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
+  { to: "/objects", label: "Objekt", icon: Building02Icon, adminOnly: true },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
+  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: ClipboardCheckIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
   { to: "/dokument", label: "Dokument", icon: File02Icon },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
@@ -219,7 +221,9 @@ function StartPage() {
     });
   }, []);
 
-  const tiles = TILES.filter((t) => canAccess(role, t.to));
+  const tiles = TILES.filter(
+    (t) => (!t.adminOnly || role === "admin") && canAccess(role, t.to),
+  );
 
   return (
     <>
