@@ -6,16 +6,14 @@
  *  - styrelse: read-only, and ONLY Fastigheter / Lägenheter / Felanmälningar /
  *    Besiktningar / Projekt (all scoped to their attached buildings), Loggbok,
  *    and Inställningar (no invite section).
- *  - entreprenor: only what relates to errands assigned to them — Dag Rapport,
- *    Fastigheter (buildings where they have work), the three errand sections,
- *    Kalender, Avslutat ("basket"), Loggbok, Inställningar.
+ *  - entreprenor: assigned worklist and individually assigned case details.
+ *    General BAYT modules are not part of the contractor portal.
  *
  * Nav is filtered from this, and each route also guards itself — hiding a link
  * is not access control on its own.
  *
- * Chatt (/chatt) is a deliberate exception to "styrelse is read-only" and to
- * entreprenör's assigned-errand-only scope: both roles may send messages there.
- * That write access is enforced by the chat RLS policies and the
+ * Chatt (/chatt) is a deliberate exception to "styrelse is read-only": the
+ * role may send messages there. That write access is enforced by chat RLS and the
  * create_chat_conversation() RPC (see supabase-functions/chat.sql), not by
  * canEdit() — this file only controls whether the route is reachable at all.
  */
@@ -40,47 +38,20 @@ const STYRELSE_ROUTES = [
   "/chatt",
 ];
 
-// /kalender and /avslutat are specced for entreprenörer but not built yet.
-// Deliberately NOT listed: a nav link to a route that doesn't exist 404s in front
-// of the user. Re-add both here the same commit the pages land.
-const ENTREPRENOR_ROUTES = [
-  "/dag-rapport",
-  "/fastigheter",
-  "/properties",
-  // Lägenheter is reachable but NARROWER than for styrelse: canAccess only gets
-  // them past the route layer, and useRecordScopeGuard then restricts them to
-  // apartments where they hold an assignment (useMyAssignedApartmentIds). They
-  // are here for the per-apartment Historik on the Info view.
-  "/apartments",
-  "/issues",
-  "/inspections",
-  "/projects",
-  "/loggbok",
-  "/installningar",
-  "/chatt",
-];
-
 /**
  * Per-building sections each role may open. Also drives the building sub-nav, so
  * the menu and the URL guard can't disagree.
  */
 export const PROPERTY_SECTIONS_FOR_ROLE: Record<string, ReadonlyArray<string>> = {
   styrelse: ["apartments", "issues", "inspections", "projects", "logbook", "avslutat"],
-  // "apartments" reaches the section; ApartmentsTab then shows an entreprenör
-  // only the units they are assigned to, not the building's whole roster.
-  // "avslutat" is the per-building archive — its queries repeat the same
-  // assigned_contact_id scoping as the section tabs, so an entreprenör only
-  // sees their own closed ärenden there.
-  entreprenor: ["apartments", "issues", "inspections", "projects", "logbook", "avslutat"],
 };
 
 /**
  * Where each role lands when it hits something it may not open.
  *
  * Lives here, next to canAccess, because it is the same knowledge: a role's home
- * must be a page that role can actually use. Sending an entreprenör to a
- * building grid was the bug behind "det tar mig till en tom felanmälan-sida" —
- * the grids are useless to them until they have work in a building.
+ * must be a page that role can actually use. An entreprenör lands on the
+ * assigned worklist instead of a general building grid.
  * Consumed by the `_authenticated` route guard and by useRecordScopeGuard.
  */
 export const HOME_FOR_ROLE: Record<string, string> = {
@@ -96,10 +67,16 @@ export function homeForRole(role: string | null | undefined): string {
 export function canAccess(role: string | null | undefined, to: string): boolean {
   if (role === "admin") return true;
 
-  // Creation is admin-only. Without this, allowing "/issues" would also allow
-  // "/issues/new" — letting a read-only styrelse, or an entreprenör who may only
-  // öppna/avsluta, reach a working create form.
+  // Creation is admin-only, including for roles that can open individual cases.
   if (/(^|\/)new$/.test(to)) return false;
+
+  // An entreprenör works from the assigned worklist and opens only individual
+  // assigned case details from there. General module grids and the app launcher
+  // are not part of the contractor portal.
+  if (role === "entreprenor") {
+    if (to === "/dag-rapport") return true;
+    return /^\/(issues|inspections|projects)\/[^/]+$/.test(to);
+  }
 
   // Building sub-pages: "/properties/<id>/<section>". Allowing "/properties"
   // wholesale would otherwise expose Objekt, Dokument, Kontakter and
@@ -109,8 +86,7 @@ export function canAccess(role: string | null | undefined, to: string): boolean 
     if (!PROPERTY_SECTIONS_FOR_ROLE[role]!.includes(sub[1])) return false;
   }
 
-  const allowed =
-    role === "styrelse" ? STYRELSE_ROUTES : role === "entreprenor" ? ENTREPRENOR_ROUTES : [];
+  const allowed = role === "styrelse" ? STYRELSE_ROUTES : [];
   return allowed.some((r) => to === r || to.startsWith(r + "/"));
 }
 
