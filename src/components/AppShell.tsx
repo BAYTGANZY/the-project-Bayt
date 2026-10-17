@@ -22,7 +22,7 @@ import {
   Chatting01Icon,
 } from "@hugeicons/core-free-icons";
 import { useAuth } from "@/lib/auth";
-import { canAccess, isEntreprenor } from "@/lib/permissions";
+import { canAccess } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { PropertyContextNav } from "@/components/ContextNav";
 import { NotificationBell, NotificationToasts } from "@/components/NotificationCenter";
@@ -36,7 +36,6 @@ type NavItem = {
   to: string;
   label: string;
   icon: typeof DashboardSquare01Icon;
-  adminOnly?: boolean;
   children?: SubItem[];
 };
 type NavSection = { label?: string; items: NavItem[] };
@@ -44,7 +43,6 @@ type NavSection = { label?: string; items: NavItem[] };
 const SECTIONS: NavSection[] = [
   {
     items: [
-      { to: "/start", label: "Hem", icon: GridViewIcon },
       { to: "/dag-rapport", label: "Dag Rapport", icon: CalendarCheckIn01Icon },
       { to: "/dashboard", label: "Översikt", icon: DashboardSquare01Icon },
       { to: "/chatt", label: "Chatt", icon: Chatting01Icon },
@@ -54,7 +52,6 @@ const SECTIONS: NavSection[] = [
     label: "Fastigheter",
     items: [
       { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
-      { to: "/objects", label: "Objekt", icon: Building02Icon, adminOnly: true },
       { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
     ],
   },
@@ -64,7 +61,7 @@ const SECTIONS: NavSection[] = [
       { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
       { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
       { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-      { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: ClipboardCheckIcon },
+      { to: "/genomgang-av-fastighet", label: "Platsbesök", icon: ClipboardCheckIcon },
     ],
   },
   {
@@ -91,12 +88,9 @@ const BOTTOM_NAV: NavItem[] = [
 
 /** Drop links this role can't reach, then drop sections left empty. */
 function sectionsForRole(role: string | null | undefined): NavSection[] {
-  return SECTIONS.map((s) => ({
-    ...s,
-    items: s.items
-      .filter((i) => (!i.adminOnly || role === "admin") && canAccess(role, i.to))
-      .map((i) => role === "entreprenor" && i.to === "/dag-rapport" ? { ...i, label: "Mina uppdrag" } : i),
-  })).filter((s) => s.items.length > 0);
+  return SECTIONS.map((s) => ({ ...s, items: s.items.filter((i) => canAccess(role, i.to)) })).filter(
+    (s) => s.items.length > 0,
+  );
 }
 
 type Breakpoint = "mobile" | "mini" | "full";
@@ -215,13 +209,10 @@ export function AppShell() {
   const showMiniSidebar = isMini && !open;
 
   const initial = getInitial(profile?.full_name);
-  const isContractor = isEntreprenor(profile?.role);
   const sections = sectionsForRole(profile?.role);
   // Tom karta för alla utom entreprenör — ingen extra fråga körs för dem.
   const arendeDots = useMyArendeDots();
-  const bottomNav: NavItem[] = isContractor
-    ? [{ to: "/dag-rapport", label: "Mina uppdrag", icon: CalendarCheckIn01Icon }]
-    : BOTTOM_NAV.filter((i) => i.to === "/start" || canAccess(profile?.role, i.to));
+  const bottomNav = BOTTOM_NAV.filter((i) => i.to === "/start" || canAccess(profile?.role, i.to));
 
   return (
     <div
@@ -425,7 +416,7 @@ export function AppShell() {
             className="bayt-sidebar-nav"
             style={{ flex: 1, paddingTop: 4, paddingBottom: 12, overflowY: "auto" }}
           >
-            {!isContractor && <PropertyContextNav onNavigate={() => setOpen(false)} />}
+            <PropertyContextNav onNavigate={() => setOpen(false)} />
             {sections.map((section, sIdx) => (
 
               <div key={section.label ?? sIdx} style={{ marginBottom: 8 }}>
@@ -600,23 +591,10 @@ export function AppShell() {
               gap: 12,
             }}
           >
-            {isContractor ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, color: "#ffffff" }}>
-                <UserAvatar url={profile?.avatar_url ?? null} initial={initial} size={36} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {profile?.full_name ?? "—"}
-                  </div>
-                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.5)" }}>
-                    entreprenör
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Link
-                to="/installningar"
-                onClick={() => setOpen(false)}
-                style={{
+            <Link
+              to="/installningar"
+              onClick={() => setOpen(false)}
+              style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
@@ -649,9 +627,8 @@ export function AppShell() {
                 >
                   {profile?.role ?? "användare"}
                 </div>
-                </div>
-              </Link>
-            )}
+              </div>
+            </Link>
             <button
               onClick={handleLogout}
               aria-label="Logga ut"
@@ -726,11 +703,11 @@ export function AppShell() {
           <div style={{ flex: 1 }} />
 
           {/* Global search */}
-          {!isMobile && !isContractor && <GlobalSearch />}
+          {!isMobile && <GlobalSearch />}
 
           <NotificationBell isMobile={isMobile} />
 
-          <AvatarMenu initial={initial} avatarUrl={profile?.avatar_url ?? null} fullName={profile?.full_name ?? null} role={profile?.role ?? null} showSettings={!isContractor} onLogout={handleLogout} />
+          <AvatarMenu initial={initial} avatarUrl={profile?.avatar_url ?? null} fullName={profile?.full_name ?? null} role={profile?.role ?? null} onLogout={handleLogout} />
         </header>
 
         {/* Slide-down popups for incoming chat messages, anchored under the top bar. */}
@@ -849,7 +826,7 @@ function MainWithSwipe({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-function AvatarMenu({ initial, avatarUrl, fullName, role, showSettings, onLogout }: { initial: string; avatarUrl: string | null; fullName: string | null; role: string | null; showSettings: boolean; onLogout: () => void }) {
+function AvatarMenu({ initial, avatarUrl, fullName, role, onLogout }: { initial: string; avatarUrl: string | null; fullName: string | null; role: string | null; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -879,11 +856,9 @@ function AvatarMenu({ initial, avatarUrl, fullName, role, showSettings, onLogout
             <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>{fullName ?? "—"}</div>
             <div style={{ fontSize: 11, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em" }}>{role ?? ""}</div>
           </div>
-          {showSettings && (
-            <Link to="/installningar" onClick={() => setOpen(false)}>
-              <HugeiconsIcon icon={Settings01Icon} size={14} /> Inställningar
-            </Link>
-          )}
+          <Link to="/installningar" onClick={() => setOpen(false)}>
+            <HugeiconsIcon icon={Settings01Icon} size={14} /> Inställningar
+          </Link>
           <button type="button" onClick={() => { setOpen(false); onLogout(); }}>
             <HugeiconsIcon icon={Logout01Icon} size={14} /> Logga ut
           </button>
@@ -892,4 +867,3 @@ function AvatarMenu({ initial, avatarUrl, fullName, role, showSettings, onLogout
     </div>
   );
 }
-

@@ -7,12 +7,9 @@ import {
   AlertCircleIcon,
   ClipboardCheckIcon,
   Briefcase01Icon,
-  EyeIcon,
   File02Icon,
   UserGroupIcon,
   BookOpen01Icon,
-  FileViewIcon,
-  House01Icon,
 } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -25,12 +22,6 @@ export const Route = createFileRoute("/start")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.session.user.id)
-      .maybeSingle();
-    if (profile?.role === "entreprenor") throw redirect({ to: "/dag-rapport" });
   },
   head: () => ({ meta: [{ title: "Snabbåtkomst — BAYT" }] }),
   component: StartPage,
@@ -39,13 +30,11 @@ export const Route = createFileRoute("/start")({
 const TILES = [
   { to: "/dashboard", label: "Dashboard", icon: DashboardSquare01Icon },
   { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
-  { to: "/objects", label: "Objekt", icon: House01Icon, adminOnly: true },
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
-  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-  { to: "/dokument", label: "Dokument", icon: FileViewIcon },
+  { to: "/dokument", label: "Dokument", icon: File02Icon },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
   { to: "/loggbok", label: "Loggbok", icon: BookOpen01Icon },
 ] as const;
@@ -224,9 +213,7 @@ function StartPage() {
     });
   }, []);
 
-  const tiles = TILES.filter(
-    (t) => (!t.adminOnly || role === "admin") && canAccess(role, t.to),
-  );
+  const tiles = TILES.filter((t) => canAccess(role, t.to));
 
   return (
     <>

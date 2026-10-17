@@ -3,8 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Notification03Icon, Alert02Icon, Chatting01Icon } from "@hugeicons/core-free-icons";
 import { useAkutIssues } from "@/components/AkutWatcher";
-import { useAuth } from "@/lib/auth";
-import { isEntreprenor } from "@/lib/permissions";
 import {
   formatNotificationTime,
   previewText,
@@ -85,19 +83,7 @@ function Avatar({
 
 export function NotificationBell({ isMobile }: { isMobile: boolean }) {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const isContractor = isEntreprenor(profile?.role);
-  const {
-    items,
-    unreadCount,
-    projectUpdates,
-    projectUpdateUnreadCount,
-    isProjectUpdateUnread,
-    markProjectUpdateRead,
-    isUnread,
-    markConversationRead,
-    markAllRead,
-  } = useNotifications();
+  const { items, unreadCount, isUnread, markConversationRead, markAllRead } = useNotifications();
   const akut = useAkutIssues();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -118,7 +104,7 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
     };
   }, [open]);
 
-  const badge = unreadCount + projectUpdateUnreadCount + akut.length;
+  const badge = unreadCount + akut.length;
   const hasAkut = akut.length > 0;
 
   const openConversation = (n: ChatNotification) => {
@@ -207,7 +193,7 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
             <span style={{ fontFamily: headingFont, fontSize: 15, fontWeight: 600, color: C.text }}>
               Notiser
             </span>
-            {(unreadCount > 0 || projectUpdateUnreadCount > 0) && (
+            {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => void markAllRead()}
@@ -274,37 +260,6 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
               </button>
             ))}
 
-            {projectUpdates.map((n) => {
-              const unread = isProjectUpdateUnread(n);
-              return (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => {
-                    markProjectUpdateRead(n.id);
-                    setOpen(false);
-                    navigate({ to: "/projects/$id", params: { id: n.projectId } });
-                  }}
-                  className="bayt-notif-row"
-                  style={{ background: unread ? "#F4F8F3" : "transparent" }}
-                >
-                  <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#E8F3E4", color: "#3D8A30", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <HugeiconsIcon icon={Notification03Icon} size={18} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: unread ? 700 : 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {n.projectTitle ?? "Projektuppdatering"}
-                      </span>
-                      <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{formatNotificationTime(n.createdAt)}</span>
-                    </span>
-                    <span className="bayt-notif-preview" style={{ color: unread ? C.text : C.secondary }}>{previewText(n.body)}</span>
-                  </span>
-                  {unread && <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.green, flexShrink: 0, alignSelf: "center" }} />}
-                </button>
-              );
-            })}
-
             {items.map((n) => {
               const unread = isUnread(n);
               return (
@@ -365,7 +320,7 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
               );
             })}
 
-            {akut.length === 0 && projectUpdates.length === 0 && items.length === 0 && (
+            {akut.length === 0 && items.length === 0 && (
               <div style={{ padding: "36px 20px", textAlign: "center" }}>
                 <HugeiconsIcon icon={Notification03Icon} size={24} color={C.muted} />
                 <div style={{ marginTop: 8, fontSize: 13, color: C.secondary }}>Inga notiser</div>
@@ -373,7 +328,7 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
             )}
           </div>
 
-          {!isContractor && <button
+          <button
             type="button"
             onClick={() => {
               setOpen(false);
@@ -400,7 +355,7 @@ export function NotificationBell({ isMobile }: { isMobile: boolean }) {
           >
             <HugeiconsIcon icon={Chatting01Icon} size={14} />
             Öppna chatten
-          </button>}
+          </button>
         </div>
       )}
     </div>

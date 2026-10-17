@@ -19,7 +19,6 @@ import { AvslutaArendeButton } from "@/components/AvslutaArendeButton";
 import { AnsvarigDropdown } from "@/components/AnsvarigDropdown";
 import { DeleteButton } from "@/components/DeleteButton";
 import { useRecordScopeGuard } from "@/hooks/useRecordScopeGuard";
-import { isEntreprenor } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/issues/$id")({
   head: () => ({ meta: [{ title: "Felanmälan — BAYT" }] }),
@@ -100,8 +99,7 @@ export function IssueDetailPage({ idOverride }: { idOverride?: string } = {}) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, profile } = useAuth();
-  const isContractor = isEntreprenor(profile?.role);
+  const { user } = useAuth();
 
   const issueQ = useQuery({
     queryKey: ["issue", id],
@@ -367,8 +365,8 @@ export function IssueDetailPage({ idOverride }: { idOverride?: string } = {}) {
   return (
     <div style={{ background: embedded ? "transparent" : C.bg, minHeight: embedded ? undefined : "100vh", padding: embedded ? 0 : (isMobile ? 16 : 32), width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
       {!embedded && (
-        <Link to={isContractor ? "/dag-rapport" : "/issues"} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.secondary, textDecoration: "none", fontSize: 14, marginBottom: 16 }}>
-          <ArrowLeft size={18} /> {isContractor ? "Tillbaka till Mina uppdrag" : "Tillbaka till felanmälningar"}
+        <Link to="/issues" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.secondary, textDecoration: "none", fontSize: 14, marginBottom: 16 }}>
+          <ArrowLeft size={18} /> Tillbaka till felanmälningar
         </Link>
       )}
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>{issue.title}</h1>

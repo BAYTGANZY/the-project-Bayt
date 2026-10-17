@@ -17,7 +17,7 @@ import { DerivedStatusField } from "@/components/DerivedStatusBadge";
 import { DerivedPriorityField } from "@/components/DerivedPriorityField";
 import { deriveProjectStatus, derivePriorityFromStatus } from "@/lib/issue-tokens";
 import { useRecordScopeGuard } from "@/hooks/useRecordScopeGuard";
-import { isEntreprenor, isStyrelse } from "@/lib/permissions";
+import { isStyrelse } from "@/lib/permissions";
 import { sanitizeStorageName, useSignedFileUrls } from "@/lib/storage";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
@@ -96,19 +96,13 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, profile } = useAuth();
-  const isContractor = isEntreprenor(profile?.role);
-  const canUseProjectUpdates = isContractor || profile?.role === "admin";
 
   const projectQ = useQuery({
-    queryKey: ["project", id, profile?.role],
+    queryKey: ["project", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select(
-          isContractor
-            ? "id, property_id, title, description, status, arende_status, start_date, end_date, created_at, updated_at, viewed_at, assigned_contact_id, properties(name)"
-            : "*, properties(name)",
-        )
+        .select("*, properties(name)")
         .eq("id", id)
         .single();
       if (error) throw error;
@@ -147,24 +141,9 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
   );
 
   const { data: properties = [] } = useQuery({
-    queryKey: ["properties-min", user?.id],
-    enabled: profile?.role === "admin",
+    queryKey: ["properties-min"],
     queryFn: async () => {
       const { data, error } = await supabase.from("properties").select("id, name").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const updatesQ = useQuery({
-    queryKey: ["project-updates", id, user?.id],
-    enabled: canUseProjectUpdates,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("project_updates")
-        .select("id, project_id, created_by, body, created_at")
-        .eq("project_id", id)
-        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -181,20 +160,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
-  const [updateBody, setUpdateBody] = useState("");
-
-  useEffect(() => {
-    if (!canUseProjectUpdates) return;
-    const channel = supabase
-      .channel(`project-updates-${id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "project_updates", filter: `project_id=eq.${id}` },
-        () => void qc.invalidateQueries({ queryKey: ["project-updates", id] }),
-      )
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [id, qc, canUseProjectUpdates]);
 
   useEffect(() => {
     if (!projectQ.data) return;
@@ -216,7 +181,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
 
   const save = useMutation({
     mutationFn: async () => {
-      if (profile?.role !== "admin") throw new Error("Endast BAYT kan ändra projektets grunduppgifter.");
       const { error } = await supabase
         .from("projects")
         .update({
@@ -242,24 +206,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
       toast.success("Sparat!", { style: { background: "#3D8A30", color: "#fff" } });
     },
     onError: (e: any) => setError(e.message ?? "Kunde inte spara"),
-  });
-
-  const addUpdate = useMutation({
-    mutationFn: async () => {
-      if (!user || !updateBody.trim()) return;
-      const { error } = await supabase.from("project_updates").insert({
-        project_id: id,
-        created_by: user.id,
-        body: updateBody.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setUpdateBody("");
-      qc.invalidateQueries({ queryKey: ["project-updates", id] });
-      toast.success("Uppdateringen skickades.");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Kunde inte skicka uppdateringen."),
   });
 
   const [filesList, setFilesList] = useState<File[]>([]);
@@ -314,7 +260,7 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", padding: isMobile ? 16 : 32 }}>
       <Link
-        to={isContractor ? "/dag-rapport" : "/projects"}
+        to="/projects"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -325,7 +271,7 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
           marginBottom: 16,
         }}
       >
-        <ArrowLeft size={18} /> {isContractor ? "Tillbaka till Mina uppdrag" : "Tillbaka"}
+        <ArrowLeft size={18} /> Tillbaka
       </Link>
 
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
@@ -376,25 +322,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
       >
         {projectQ.isLoading ? (
           <div style={{ color: C.secondary }}>Laddar…</div>
-        ) : isContractor ? (
-          <div>
-            <h2 style={{ margin: "0 0 12px", fontSize: 17, color: C.text }}>Projektinformation</h2>
-            <div style={{ fontSize: 14, color: C.secondary, marginBottom: 8 }}>
-              <strong style={{ color: C.text }}>Fastighet:</strong> {p?.properties?.name ?? "—"}
-            </div>
-            <div style={{ fontSize: 14, color: C.secondary, marginBottom: 8 }}>
-              <strong style={{ color: C.text }}>Period:</strong> {fmtDate(p?.start_date ?? null)} – {fmtDate(p?.end_date ?? null)}
-            </div>
-            <div style={{ marginTop: 16 }}>
-              <div style={labelStyle}>Beskrivning</div>
-              <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap" }}>
-                {p?.description?.trim() || "Ingen beskrivning ännu."}
-              </div>
-            </div>
-            <div style={{ marginTop: 18, fontSize: 13, color: C.secondary }}>
-              Lägg till arbetsinformation i uppdateringsfältet nedan. Projektets grunduppgifter hanteras av BAYT.
-            </div>
-          </div>
         ) : (
           <>
             <div style={{ marginBottom: 16 }}>
@@ -524,74 +451,6 @@ export function ProjectDetailPage({ idOverride }: { idOverride?: string } = {}) 
           </>
         )}
       </div>
-
-      {canUseProjectUpdates && <section
-        style={{
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          padding: 24,
-          maxWidth: 640,
-          marginBottom: 24,
-        }}
-      >
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: "0 0 6px" }}>Arbetsuppdateringar</h2>
-        <p style={{ fontSize: 13, color: C.secondary, margin: "0 0 16px" }}>
-          Skriv vad som har gjorts, vad som återstår eller vad BAYT behöver känna till. Den andra parten får en notis.
-        </p>
-        <textarea
-          style={textareaStyle}
-          value={updateBody}
-          maxLength={4000}
-          onChange={(e) => setUpdateBody(e.target.value)}
-          placeholder="Skriv en uppdatering om arbetet…"
-          rows={4}
-        />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-          <button
-            type="button"
-            onClick={() => addUpdate.mutate()}
-            disabled={!updateBody.trim() || addUpdate.isPending || !user}
-            style={{
-              height: 40,
-              padding: "0 16px",
-              background: C.primary,
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: !updateBody.trim() || addUpdate.isPending ? "not-allowed" : "pointer",
-              opacity: !updateBody.trim() || addUpdate.isPending ? 0.6 : 1,
-            }}
-          >
-            {addUpdate.isPending ? "Skickar…" : "Skicka uppdatering"}
-          </button>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 22 }}>
-          {updatesQ.isLoading ? (
-            <div style={{ color: C.secondary, fontSize: 14 }}>Laddar uppdateringar…</div>
-          ) : updatesQ.error ? (
-            <div style={{ color: C.error, fontSize: 14 }}>Uppdateringar kunde inte laddas. Kontakta BAYT.</div>
-          ) : (updatesQ.data ?? []).length === 0 ? (
-            <div style={{ color: C.secondary, fontSize: 14 }}>Inga uppdateringar ännu.</div>
-          ) : (
-            updatesQ.data!.map((item: { id: string; created_by: string | null; body: string; created_at: string }) => (
-              <article key={item.id} style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 5 }}>
-                  <strong style={{ fontSize: 13, color: C.text }}>
-                    {item.created_by === user?.id ? "Du" : isContractor ? "BAYT" : "Entreprenör"}
-                  </strong>
-                  <time style={{ fontSize: 12, color: C.secondary }} dateTime={item.created_at}>
-                    {new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at))}
-                  </time>
-                </div>
-                <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.body}</div>
-              </article>
-            ))
-          )}
-        </div>
-      </section>}
 
       {/* Images section */}
       <div
