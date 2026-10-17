@@ -22,6 +22,12 @@ export const Route = createFileRoute("/start")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.session.user.id)
+      .maybeSingle();
+    if (profile?.role === "entreprenor") throw redirect({ to: "/dag-rapport" });
   },
   head: () => ({ meta: [{ title: "Snabbåtkomst — BAYT" }] }),
   component: StartPage,
