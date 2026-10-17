@@ -25,7 +25,8 @@
 
       if (saveError) throw saveError;
 
-      // Mejla bara när projektet tilldelas eller byter entreprenör.
+      let emailSent = false;
+
       if (assignmentChanged && assignedContactId) {
         const { error: emailError } = await supabase.functions.invoke(
           "notify-entreprenor",
@@ -37,15 +38,23 @@
             `Projektet sparades, men mejlet kunde inte skickas. ${emailError.message}`,
           );
         }
+
+        emailSent = true;
       }
+
+      return { emailSent };
     },
-    onSuccess: () => {
+    onSuccess: ({ emailSent }) => {
       qc.invalidateQueries({ queryKey: ["project", id] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       setError(null);
-      toast.success("Projektet sparades och uppdraget skickades via mejl.", {
-        style: { background: "#3D8A30", color: "#fff" },
-      });
+
+      toast.success(
+        emailSent
+          ? "Projektet sparades och uppdraget skickades via mejl."
+          : "Projektet sparades.",
+        { style: { background: "#3D8A30", color: "#fff" } },
+      );
     },
     onError: (e: any) => {
       const message = e.message ?? "Kunde inte spara projektet.";
