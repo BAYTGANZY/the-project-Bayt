@@ -225,11 +225,11 @@ export function InspectionDetailPage({ idOverride }: { idOverride?: string } = {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", padding: isMobile ? 16 : 32 }}>
-      <Link to="/inspections" style={{
+      <Link to={entreprenor ? "/dag-rapport" : "/inspections"} style={{
         display: "inline-flex", alignItems: "center", gap: 6, color: C.secondary,
         fontSize: 13, textDecoration: "none", marginBottom: 12,
       }}>
-        <ArrowLeft size={18} /> Tillbaka
+        <ArrowLeft size={18} /> {entreprenor ? "Tillbaka till Mina uppdrag" : "Tillbaka"}
       </Link>
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>{inspectionTypeLabel(insp.inspection_type)}</h1>
       <div style={{ fontSize: 13, color: C.secondary, marginBottom: 16 }}>{insp.properties?.name ?? "—"}</div>

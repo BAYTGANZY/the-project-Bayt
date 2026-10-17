@@ -8,18 +8,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
+import { toast } from "sonner";
 
 /**
- * In-app notifications for incoming chat messages.
+ * In-app notifications for chat messages and project updates.
  *
- * Read state is NOT a table of its own — it is derived from the chat's existing
- * `chat_participants.last_read_at`, so opening a conversation in /chatt clears
- * the bell badge for free (and vice versa via `markAllRead`). Nothing new to
- * migrate; the only requirement is the realtime publication chat.sql already
- * sets up for `chat_messages` + `chat_participants`.
+ * Chat read state comes from `chat_participants.last_read_at`. Project update
+ * read state is stored per recipient in `project_update_notifications`, so it
+ * follows the user across devices and sessions.
  */
 
 const MAX_ITEMS = 30;
@@ -41,6 +40,17 @@ export type ChatNotification = {
   groupName: string | null;
   body: string;
   createdAt: string;
+};
+
+export type ProjectUpdateNotification = {
+  id: string;
+  updateId: string;
+  projectId: string;
+  projectTitle: string | null;
+  createdBy: string | null;
+  body: string;
+  createdAt: string;
+  readAt: string | null;
 };
 
 type MessageRow = {
@@ -137,6 +147,39 @@ function buildNotification(
   };
 }
 
+async function loadProjectUpdates(selfId: string): Promise<ProjectUpdateNotification[]> {
+  const { data, error } = await supabase
+    .from("project_update_notifications")
+    .select("id, update_id, project_id, read_at, created_at")
+    .eq("recipient_profile_id", selfId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_ITEMS);
+  if (error) throw error;
+  const rows = data ?? [];
+  const updateIds = [...new Set(rows.map((row) => row.update_id as string))];
+  const projectIds = [...new Set(rows.map((row) => row.project_id as string))];
+  const [{ data: updates }, { data: projects }] = await Promise.all([
+    updateIds.length
+      ? supabase.from("project_updates").select("id, created_by, body").in("id", updateIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; created_by: string | null; body: string }> }),
+    projectIds.length
+      ? supabase.from("projects").select("id, title").in("id", projectIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; title: string | null }> }),
+  ]);
+  const updateMap = new Map((updates ?? []).map((update) => [update.id as string, update]));
+  const titles = new Map((projects ?? []).map((project) => [project.id as string, project.title as string | null]));
+  return rows.map((row) => ({
+    id: row.id as string,
+    updateId: row.update_id as string,
+    projectId: row.project_id as string,
+    projectTitle: titles.get(row.project_id as string) ?? null,
+    createdBy: (updateMap.get(row.update_id as string)?.created_by as string | null) ?? null,
+    body: (updateMap.get(row.update_id as string)?.body as string | null) ?? "Projektet har uppdaterats.",
+    createdAt: row.created_at as string,
+    readAt: row.read_at as string | null,
+  }));
+}
+
 /** "nu" / "12 min" / "14:32" / "i går 14:32" / "3 jun 14:32" */
 export function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
@@ -164,6 +207,10 @@ type NotificationsState = {
   /** Newest first, incoming messages only (never my own). */
   items: ChatNotification[];
   unreadCount: number;
+  projectUpdates: ProjectUpdateNotification[];
+  projectUpdateUnreadCount: number;
+  isProjectUpdateUnread: (n: ProjectUpdateNotification) => boolean;
+  markProjectUpdateRead: (id: string) => void;
   /** Currently on screen as a popup. */
   toasts: ChatNotification[];
   isUnread: (n: ChatNotification) => boolean;
@@ -176,16 +223,21 @@ type NotificationsState = {
 const NotificationsContext = createContext<NotificationsState | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const selfId = user?.id ?? "";
+  const chatEnabled = profile?.role === "admin" || profile?.role === "styrelse";
+  const projectUpdatesEnabled = profile?.role === "admin" || profile?.role === "entreprenor";
 
   const [items, setItems] = useState<ChatNotification[]>([]);
+  const [projectUpdates, setProjectUpdates] = useState<ProjectUpdateNotification[]>([]);
   const [toasts, setToasts] = useState<ChatNotification[]>([]);
   const [lastRead, setLastRead] = useState<Record<string, string | null>>({});
 
   const convsRef = useRef<Map<string, ConvLite>>(new Map());
   const peopleRef = useRef<Map<string, PersonLite>>(new Map());
   const seenRef = useRef<Set<string>>(new Set());
+  const seenProjectRef = useRef<Set<string>>(new Set());
 
   // Don't pop a toast for the thread the user is already looking at.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -206,27 +258,51 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       convsRef.current = new Map();
       peopleRef.current = new Map();
       seenRef.current = new Set();
+      seenProjectRef.current = new Set();
       setItems([]);
+      setProjectUpdates([]);
       setToasts([]);
       setLastRead({});
       return;
     }
     let cancelled = false;
-    loadChatContext(selfId)
-      .then((ctx) => {
-        if (cancelled) return;
-        applyContext(ctx);
-        const built = ctx.messages.map((m) => buildNotification(m, ctx.convs, ctx.people));
-        built.forEach((n) => seenRef.current.add(n.id));
-        setItems(built);
-      })
-      .catch(() => {
-        /* A failed backfill just means an empty bell — live messages still arrive. */
-      });
+    if (chatEnabled) {
+      loadChatContext(selfId)
+        .then((ctx) => {
+          if (cancelled) return;
+          applyContext(ctx);
+          const built = ctx.messages.map((m) => buildNotification(m, ctx.convs, ctx.people));
+          built.forEach((n) => seenRef.current.add(n.id));
+          setItems(built);
+        })
+        .catch(() => {
+          /* A failed backfill just means an empty bell — live messages still arrive. */
+        });
+    } else {
+      setItems([]);
+      convsRef.current = new Map();
+      peopleRef.current = new Map();
+      seenRef.current = new Set();
+    }
+
+    if (projectUpdatesEnabled) {
+      loadProjectUpdates(selfId)
+        .then((rows) => {
+          if (cancelled) return;
+          rows.forEach((row) => seenProjectRef.current.add(row.id));
+          setProjectUpdates(rows);
+        })
+        .catch(() => {
+          /* The project feed remains available if notification backfill fails. */
+        });
+    } else {
+      setProjectUpdates([]);
+      seenProjectRef.current = new Set();
+    }
     return () => {
       cancelled = true;
     };
-  }, [selfId, applyContext]);
+  }, [selfId, chatEnabled, projectUpdatesEnabled, applyContext]);
 
   const pushMessage = useCallback(
     async (row: MessageRow) => {
@@ -268,70 +344,80 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!selfId) return;
-    const channel = supabase
-      .channel(`bayt-notifications-${selfId}`)
-      // No filter: RLS already limits realtime rows to conversations I'm in.
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (payload) => {
+    let channel = supabase.channel(`bayt-notifications-${selfId}`);
+    if (chatEnabled) {
+      channel = channel
+        // No filter: RLS already limits realtime rows to conversations I'm in.
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (payload) => {
           void pushMessage(payload.new as MessageRow);
-        },
-      )
-      // Sender tombstoned it — pull the notification back.
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chat_messages" },
-        (payload) => {
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_messages" }, (payload) => {
           const row = payload.new as MessageRow;
           if (row?.deleted_at && row.id) removeMessage(row.id);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "chat_messages" },
-        (payload) => {
+        })
+        .on("postgres_changes", { event: "DELETE", schema: "public", table: "chat_messages" }, (payload) => {
           const old = payload.old as Partial<MessageRow>;
           if (old?.id) removeMessage(old.id);
-        },
-      )
-      // Reading the thread anywhere (incl. another tab) clears the badge here.
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "chat_participants",
-          filter: `profile_id=eq.${selfId}`,
-        },
-        (payload) => {
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_participants", filter: `profile_id=eq.${selfId}` }, (payload) => {
           const row = payload.new as { conversation_id: string; last_read_at: string | null };
-          if (row?.conversation_id) {
-            setLastRead((prev) => ({ ...prev, [row.conversation_id]: row.last_read_at }));
+          if (row?.conversation_id) setLastRead((prev) => ({ ...prev, [row.conversation_id]: row.last_read_at }));
+        })
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_participants", filter: `profile_id=eq.${selfId}` }, () => {
+          void loadChatContext(selfId).then(applyContext).catch(() => {});
+        });
+    }
+    if (projectUpdatesEnabled) {
+      channel = channel.on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "project_update_notifications",
+        filter: `recipient_profile_id=eq.${selfId}`,
+      }, (payload) => {
+        const row = payload.new as { id: string; update_id: string; project_id: string; created_at: string; read_at: string | null };
+        if (!row?.id || seenProjectRef.current.has(row.id)) return;
+        seenProjectRef.current.add(row.id);
+        void Promise.all([
+          supabase.from("project_updates").select("created_by, body").eq("id", row.update_id).maybeSingle(),
+          supabase.from("projects").select("title").eq("id", row.project_id).maybeSingle(),
+        ]).then(([updateResult, projectResult]) => {
+          const update: ProjectUpdateNotification = {
+            id: row.id,
+            updateId: row.update_id,
+            projectId: row.project_id,
+            projectTitle: projectResult.data?.title ?? null,
+            createdBy: updateResult.data?.created_by ?? null,
+            body: updateResult.data?.body ?? "Projektet har uppdaterats.",
+            createdAt: row.created_at,
+            readAt: row.read_at,
+          };
+          setProjectUpdates((prev) => [update, ...prev.filter((item) => item.id !== update.id)].slice(0, MAX_ITEMS));
+          if (update.createdBy !== selfId && document.visibilityState === "visible") {
+            toast("Uppdatering i projekt", {
+              description: update.projectTitle ? `${update.projectTitle}: ${update.body}` : update.body,
+              action: { label: "Visa", onClick: () => navigate({ to: "/projects/$id", params: { id: update.projectId } }) },
+            });
           }
-        },
-      )
-      // Added to a new conversation — learn its participants before its first message.
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_participants",
-          filter: `profile_id=eq.${selfId}`,
-        },
-        () => {
-          void loadChatContext(selfId)
-            .then(applyContext)
-            .catch(() => {});
-        },
-      )
-      .subscribe();
+        });
+      });
+      channel = channel.on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "project_update_notifications",
+        filter: `recipient_profile_id=eq.${selfId}`,
+      }, (payload) => {
+        const row = payload.new as { id: string; read_at: string | null };
+        if (row?.id) {
+          setProjectUpdates((prev) => prev.map((item) => item.id === row.id ? { ...item, readAt: row.read_at } : item));
+        }
+      });
+    }
+    channel = channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selfId, pushMessage, removeMessage, applyContext]);
+  }, [selfId, chatEnabled, projectUpdatesEnabled, pushMessage, removeMessage, applyContext, navigate]);
 
   const isUnread = useCallback(
     (n: ChatNotification) => {
@@ -354,26 +440,60 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       for (const n of items) next[n.conversationId] = now;
       return next;
     });
-    await supabase.from("chat_participants").update({ last_read_at: now }).eq("profile_id", selfId);
-  }, [selfId, items]);
+    if (chatEnabled) {
+      await supabase.from("chat_participants").update({ last_read_at: now }).eq("profile_id", selfId);
+    }
+    if (projectUpdatesEnabled) {
+      setProjectUpdates((prev) => prev.map((notification) => notification.readAt ? notification : { ...notification, readAt: now }));
+      await supabase
+        .from("project_update_notifications")
+        .update({ read_at: now })
+        .eq("recipient_profile_id", selfId)
+        .is("read_at", null);
+    }
+  }, [selfId, items, chatEnabled, projectUpdatesEnabled, projectUpdates]);
+
+  const markProjectUpdateRead = useCallback((id: string) => {
+    if (!selfId || !projectUpdatesEnabled) return;
+    const readAt = new Date().toISOString();
+    setProjectUpdates((prev) => prev.map((notification) => notification.id === id ? { ...notification, readAt } : notification));
+    void supabase
+      .from("project_update_notifications")
+      .update({ read_at: readAt })
+      .eq("id", id)
+      .eq("recipient_profile_id", selfId)
+      .is("read_at", null);
+  }, [selfId, projectUpdatesEnabled]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const unreadCount = useMemo(() => items.filter(isUnread).length, [items, isUnread]);
+  const isProjectUpdateUnread = useCallback(
+    (n: ProjectUpdateNotification) => !n.readAt && n.createdBy !== selfId,
+    [selfId],
+  );
+  const projectUpdateUnreadCount = useMemo(
+    () => projectUpdates.filter(isProjectUpdateUnread).length,
+    [projectUpdates, isProjectUpdateUnread],
+  );
 
   const value = useMemo<NotificationsState>(
     () => ({
       items,
       unreadCount,
+      projectUpdates,
+      projectUpdateUnreadCount,
+      isProjectUpdateUnread,
+      markProjectUpdateRead,
       toasts,
       isUnread,
       dismissToast,
       markConversationRead,
       markAllRead,
     }),
-    [items, unreadCount, toasts, isUnread, dismissToast, markConversationRead, markAllRead],
+    [items, unreadCount, projectUpdates, projectUpdateUnreadCount, isProjectUpdateUnread, markProjectUpdateRead, toasts, isUnread, dismissToast, markConversationRead, markAllRead],
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;

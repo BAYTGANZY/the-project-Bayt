@@ -156,7 +156,7 @@ type ProjectRow = {
   description: string | null;
   status: string | null;
   arende_status: string | null;
-  budget: number | null;
+  budget?: number | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string | null;
@@ -205,7 +205,9 @@ async function loadArenden(scope: ArendeScope) {
       supabase
         .from("projects")
         .select(
-          "id, title, description, status, arende_status, budget, start_date, end_date, created_at, property_id, assigned_contact_id, properties(name)",
+          scope.by === "contact"
+            ? "id, title, description, status, arende_status, start_date, end_date, created_at, property_id, assigned_contact_id, properties(name)"
+            : "id, title, description, status, arende_status, budget, start_date, end_date, created_at, property_id, assigned_contact_id, properties(name)",
         ),
     ),
   ]);
