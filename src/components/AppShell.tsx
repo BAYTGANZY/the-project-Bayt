@@ -892,3 +892,4 @@ function AvatarMenu({ initial, avatarUrl, fullName, role, showSettings, onLogout
     </div>
   );
 }
+
