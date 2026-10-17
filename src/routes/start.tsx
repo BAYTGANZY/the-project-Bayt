@@ -31,6 +31,7 @@ const TILES = [
   { to: "/dashboard", label: "Dashboard", icon: DashboardSquare01Icon },
   { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
+  { to: "/objects", label: "Objekt", icon: Building02Icon, adminOnly: true },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
