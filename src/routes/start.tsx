@@ -12,6 +12,7 @@ import {
   UserGroupIcon,
   BookOpen01Icon,
   FileViewIcon,
+  House01Icon,
 } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/start")({
 const TILES = [
   { to: "/dashboard", label: "Dashboard", icon: DashboardSquare01Icon },
   { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
-  { to: "/objects", label: "Objekt", icon: Building02Icon, adminOnly: true },
+  { to: "/objects", label: "Objekt", icon: House01Icon, adminOnly: true },
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
