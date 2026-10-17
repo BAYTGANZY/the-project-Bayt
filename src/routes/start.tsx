@@ -41,9 +41,9 @@ const TILES = [
   { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
   { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
   { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
-  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: Eye },
+  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-  { to: "/dokument", label: "Dokument", icon: FileText },
+  { to: "/dokument", label: "Dokument", icon: FileTextIcon },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
   { to: "/loggbok", label: "Loggbok", icon: BookOpen01Icon },
 ] as const;
