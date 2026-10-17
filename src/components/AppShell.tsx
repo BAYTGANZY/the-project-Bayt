@@ -36,6 +36,7 @@ type NavItem = {
   to: string;
   label: string;
   icon: typeof DashboardSquare01Icon;
+  adminOnly?: boolean;
   children?: SubItem[];
 };
 type NavSection = { label?: string; items: NavItem[] };
@@ -43,6 +44,7 @@ type NavSection = { label?: string; items: NavItem[] };
 const SECTIONS: NavSection[] = [
   {
     items: [
+      { to: "/start", label: "Hem", icon: GridViewIcon },
       { to: "/dag-rapport", label: "Dag Rapport", icon: CalendarCheckIn01Icon },
       { to: "/dashboard", label: "Översikt", icon: DashboardSquare01Icon },
       { to: "/chatt", label: "Chatt", icon: Chatting01Icon },
@@ -52,6 +54,7 @@ const SECTIONS: NavSection[] = [
     label: "Fastigheter",
     items: [
       { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
+      { to: "/objects", label: "Objekt", icon: Building02Icon, adminOnly: true },
       { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
     ],
   },
@@ -61,7 +64,7 @@ const SECTIONS: NavSection[] = [
       { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
       { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
       { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-      { to: "/genomgang-av-fastighet", label: "Platsbesök", icon: ClipboardCheckIcon },
+      { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: ClipboardCheckIcon },
     ],
   },
   {
@@ -91,7 +94,7 @@ function sectionsForRole(role: string | null | undefined): NavSection[] {
   return SECTIONS.map((s) => ({
     ...s,
     items: s.items
-      .filter((i) => canAccess(role, i.to))
+      .filter((i) => (!i.adminOnly || role === "admin") && canAccess(role, i.to))
       .map((i) => role === "entreprenor" && i.to === "/dag-rapport" ? { ...i, label: "Mina uppdrag" } : i),
   })).filter((s) => s.items.length > 0);
 }
