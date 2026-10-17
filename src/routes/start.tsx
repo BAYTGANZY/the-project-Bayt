@@ -36,6 +36,7 @@ const TILES = [
   { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
   { to: "/dokument", label: "Dokument", icon: File02Icon },
   { to: "/contacts", label: "Kontakter", icon: UserGroupIcon },
+  { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },
   { to: "/loggbok", label: "Loggbok", icon: BookOpen01Icon },
 ] as const;
 
