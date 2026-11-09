@@ -20,6 +20,9 @@ import {
   GridViewIcon,
   CalendarCheckIn01Icon,
   Chatting01Icon,
+  EyeIcon,
+  Home01Icon,
+  House01Icon,
 } from "@hugeicons/core-free-icons";
 import { useAuth } from "@/lib/auth";
 import { canAccess } from "@/lib/permissions";
@@ -43,6 +46,7 @@ type NavSection = { label?: string; items: NavItem[] };
 const SECTIONS: NavSection[] = [
   {
     items: [
+      { to: "/start", label: "Hem", icon: Home01Icon },
       { to: "/dag-rapport", label: "Dag Rapport", icon: CalendarCheckIn01Icon },
       { to: "/dashboard", label: "Översikt", icon: DashboardSquare01Icon },
       { to: "/chatt", label: "Chatt", icon: Chatting01Icon },
@@ -53,8 +57,8 @@ const SECTIONS: NavSection[] = [
     items: [
       { to: "/fastigheter", label: "Fastigheter", icon: Building02Icon },
       { to: "/apartments", label: "Lägenheter", icon: DoorOpenIcon },
-      { to: "/objects", label: "Objekt", icon: Briefcase01Icon },
-        
+      { to: "/objects", label: "Objekt", icon: House01Icon },
+      { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: EyeIcon },        
     ],
   },
   {
@@ -63,8 +67,8 @@ const SECTIONS: NavSection[] = [
       { to: "/issues", label: "Felanmälningar", icon: AlertCircleIcon },
       { to: "/inspections", label: "Besiktningar", icon: ClipboardCheckIcon },
       { to: "/projects", label: "Projekt", icon: Briefcase01Icon },
-      { to: "/genomgang-av-fastighet", label: "Genomgång av fastighet", icon: ClipboardCheckIcon },
       { to: "/entreprenorer", label: "Entreprenörer", icon: UserGroupIcon },
+      
     ],
   },
   {
